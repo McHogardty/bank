@@ -1,5 +1,8 @@
 # Domain rules and definitions for the account and transaction entities
 
+## Money
+ * Money is represented using the AUD value object.
+
 ## Accounts
  * An account is a record of exchanges of money, called transactions.
  * An account has a balance, which is the sum of all of the transactions recorded against this account. Simply, balance = sum(credit transactions) - sum(debit transactions)

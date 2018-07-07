@@ -1,10 +1,10 @@
 
-from decimal import Decimal
 from typing import List
 from uuid import UUID
 
 from .base import Entity
 from .transaction import Transaction, TransactionType
+from .values import AUD
 
 
 class Account(Entity):
@@ -15,7 +15,7 @@ class Account(Entity):
             raise ValueError("An account must have an owner.")
 
         self.transactions: List[Transaction] = []
-        self.balance: Decimal = Decimal('0')
+        self.balance = AUD('0')
         self.owner = owner
 
     def _add_transaction(self, transaction: Transaction) -> None:
@@ -26,10 +26,10 @@ class Account(Entity):
         else:
             self.balance -= transaction.amount
 
-    def debit(self, amount: Decimal) -> None:
+    def debit(self, amount: AUD) -> None:
         self._add_transaction(Transaction(amount=amount,
                                           type=TransactionType.DEBIT))
 
-    def credit(self, amount: Decimal) -> None:
+    def credit(self, amount: AUD) -> None:
         self._add_transaction(Transaction(amount=amount,
                                           type=TransactionType.CREDIT))
