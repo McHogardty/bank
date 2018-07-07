@@ -13,21 +13,3 @@ class AUD(Decimal):
 
     def __str__(self) -> str:
         return "${}".format(self)
-
-    def __add__(self, other: object) -> AUD:  # noqa
-        if not isinstance(other, AUD):
-            return NotImplemented
-
-        return AUD(super(AUD, self).__add__(other))
-
-    def __sub__(self, other: object) -> AUD:  # noqa
-        if not isinstance(other, AUD):
-            return NotImplemented
-
-        return AUD(super(AUD, self).__sub__(other))
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, AUD):
-            return NotImplemented
-
-        return isinstance(other, AUD) and super(AUD, self).__eq__(other)
