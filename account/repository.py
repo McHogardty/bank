@@ -23,4 +23,5 @@ class AccountRepository:
         try:
             return _accounts.get(account_id)
         except KeyError:
-            raise cls.DoesNotExist('Account with ID {} does not exist.'.format(account_id))
+            raise cls.DoesNotExist('Account with ID {} does not exist.'
+                                   .format(account_id))
