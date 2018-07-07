@@ -11,6 +11,9 @@ class Account(Entity):
     def __init__(self, id: UUID = None, owner: UUID = None) -> None:
         super(Account, self).__init__(id=id)
 
+        if owner is None:
+            raise ValueError("An account must have an owner.")
+
         self.transactions: List[Transaction] = []
         self.balance: Decimal = Decimal('0')
         self.owner = owner

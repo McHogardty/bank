@@ -1,9 +1,10 @@
 
 from decimal import Decimal
+import uuid
 
 from account import Account, AccountRepository
 
-account = Account()
+account = Account(owner=uuid.uuid4())
 
 AccountRepository.add(account)
 
@@ -16,7 +17,7 @@ print("Second account is {}".format(account))
 print("Second account is account ? {}".format(second_account is account))
 print("Second account equals account ? {}".format(second_account == account))
 
-third_account = Account(id=account.id)
+third_account = Account(id=account.id, owner=uuid.uuid4())
 
 print()
 print("Third account is {}".format(account))
