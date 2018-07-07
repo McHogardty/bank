@@ -7,10 +7,10 @@ first_owner = uuid.uuid4()
 second_owner = uuid.uuid4()
 
 first_owner_wallet = ExternalCounterparty(owner=first_owner)
-first_account = RegularAccount(owner=uuid.uuid4())
+first_account = RegularAccount(owner=first_owner)
 
 second_owner_wallet = ExternalCounterparty(owner=second_owner)
-second_account = RegularAccount(owner=uuid.uuid4())
+second_account = RegularAccount(owner=second_owner)
 
 AccountRepository.add(first_owner_wallet)
 AccountRepository.add(first_account)
