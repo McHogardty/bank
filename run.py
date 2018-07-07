@@ -1,44 +1,56 @@
 
 import uuid
 
-from account import Account, AccountRepository, AUD
+from account import (AccountRepository, AccountTransferService, AUD,
+                     ExternalCounterparty, RegularAccount)
+first_owner = uuid.uuid4()
+second_owner = uuid.uuid4()
 
-amount = AUD('1')
+first_owner_wallet = ExternalCounterparty(owner=first_owner)
+first_account = RegularAccount(owner=uuid.uuid4())
 
-account = Account(owner=uuid.uuid4())
-print(account.balance)
-AccountRepository.add(account)
+second_owner_wallet = ExternalCounterparty(owner=second_owner)
+second_account = RegularAccount(owner=uuid.uuid4())
 
-print("Account is {}".format(account))
+AccountRepository.add(first_owner_wallet)
+AccountRepository.add(first_account)
+AccountRepository.add(second_owner_wallet)
+AccountRepository.add(second_account)
 
-second_account = AccountRepository.get(account.id)
+# Start with some fake balances.
+AccountTransferService.transfer(source=first_owner_wallet.id,
+                                destination=first_account.id,
+                                amount=AUD('10'))
+AccountTransferService.transfer(source=second_owner_wallet.id,
+                                destination=second_account.id,
+                                amount=AUD('20'))
 
+print("First owner wallet is {}".format(first_owner_wallet))
+print("Second owner wallet is {}".format(second_owner_wallet))
 print()
-print("Second account is {}".format(account))
-print("Second account is account ? {}".format(second_account is account))
-print("Second account equals account ? {}".format(second_account == account))
+print("First account is {}".format(first_account))
+print("Second account is {}".format(second_account))
 
-third_account = Account(id=account.id, owner=uuid.uuid4())
-
+amount = AUD('5')
 print()
-print("Third account is {}".format(account))
-print("Third account is account ? {}".format(third_account is account))
-print("Third account equals account ? {}".format(third_account == account))
-
-account.credit(AUD('5'))
-
-print()
-print("Credited account with $5.")
-print()
-
-print("Account is {}".format(account))
-
-account.debit(AUD('2.5'))
-
-print()
-print("Debited account with $2.5.")
+print("Transferring {!s} from first account to second account.".format(amount))
 print()
 
-print("Account is {}".format(account))
+AccountTransferService.transfer(source=first_account.id,
+                                destination=second_account.id,
+                                amount=amount)
 
+print("First account is {}".format(first_account))
+print("Second account is {}".format(second_account))
+
+amount = AUD('10.5')
+print()
+print("Transferring {!s} from second account to first account.".format(amount))
+print()
+
+AccountTransferService.transfer(source=second_account.id,
+                                destination=first_account.id,
+                                amount=amount)
+
+print("First account is {}".format(first_account))
 print("Second account is {}".format(second_account))
