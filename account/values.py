@@ -2,9 +2,6 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TypeVar
-
-Self = TypeVar('Self')
 
 
 class AUD(Decimal):
