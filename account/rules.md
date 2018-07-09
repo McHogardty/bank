@@ -9,6 +9,8 @@
  * A transaction has an associated amount, which is assumed to be in Australian dollars (AUD).
  * A transaction amount is represented as a decimal to two significant figures.
  * Transactions are recording using a system known as 'double-entry bookkeeping'. Every transfer of money is recorded as a debit against one account and a credit against another.
+ * The credit and debit of a transaction are linked by a transaction reference, which is a unique identifier. External stakeholders will identify a transaction based on
+ this reference.
 
 ## Accounts
  * An account is a record of exchanges of money, called transactions.
