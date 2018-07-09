@@ -22,7 +22,7 @@ class Account(Entity):
         if owner is None:
             raise ValueError("An account must have an owner.")
 
-        self.transactions = []
+        self.transactions: List[Transaction] = []
         self.owner = owner
         self.can_overdraw = False
 
