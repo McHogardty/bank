@@ -11,6 +11,9 @@ class AUD(Decimal):
     def __str__(self) -> str:
         return "${}".format(self)
 
+    def __deepcopy__(self, memo=None) -> AUD:  # noqa
+        return AUD(super(AUD, self).__deepcopy__(memo))
+
     def __add__(self, other: object) -> AUD:  # noqa
         if not isinstance(other, AUD):
             return NotImplemented
