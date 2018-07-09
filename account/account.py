@@ -15,25 +15,36 @@ class Account(Entity):
         pass
 
     def __init__(self, id: UUID = None, owner: UUID = None,
-                 balance: AUD = None) -> None:
+                 balance: AUD = None,
+                 transactions: List[Transaction] = None) -> None:
         super(Account, self).__init__(id=id)
 
         if owner is None:
             raise ValueError("An account must have an owner.")
 
-        self.transactions: List[Transaction] = []
-        self.balance = AUD('0') if balance is None else balance
+        self.transactions = []
         self.owner = owner
         self.can_overdraw = False
 
-    def __copy__(self) -> Account:
+        if transactions is not None:
+            self.balance = AUD('0')
+            for t in transactions:
+                self._add_transaction(t)
+
+            if balance is not None and self.balance != balance:
+                raise ValueError('Provided balance does not match sum of '
+                                 'transactions.')
+        else:
+            self.balance = AUD('0') if balance is None else balance
+
+    def __copy__(self) -> Account:  # noqa
         new_copy = type(self)(id=self.id, owner=self.owner)
         new_copy.balance = self.balance
         new_copy.transactions = self.transactions
 
         return new_copy
 
-    def __deepcopy__(self, memo) -> Account:
+    def __deepcopy__(self, memo) -> Account:  # noqa
         self_id = id(self)
         if self_id in memo:
             return memo[self_id]
@@ -57,16 +68,18 @@ class Account(Entity):
     def _can_debit(self, amount: AUD) -> bool:
         raise NotImplementedError
 
-    def debit(self, amount: AUD) -> None:
+    def debit(self, amount: AUD, reference: UUID) -> None:
         if not self.can_overdraw and amount > self.balance:
             raise Account.InsufficientBalance("Account may not be in arrears.")
 
         self._add_transaction(Transaction(amount=amount,
-                                          type=TransactionType.DEBIT))
+                                          type=TransactionType.DEBIT,
+                                          reference=reference))
 
-    def credit(self, amount: AUD) -> None:
+    def credit(self, amount: AUD, reference: UUID) -> None:
         self._add_transaction(Transaction(amount=amount,
-                                          type=TransactionType.CREDIT))
+                                          type=TransactionType.CREDIT,
+                                          reference=reference))
 
 
 class RegularAccount(Account):
@@ -75,7 +88,9 @@ class RegularAccount(Account):
 
 class ExternalCounterparty(Account):
     def __init__(self, id: UUID = None, owner: UUID = None,
-                 balance: AUD = None) -> None:
-        super(ExternalCounterparty, self).__init__(id, owner, balance)
+                 balance: AUD = None,
+                 transactions: List[Transaction] = None) -> None:
+        super(ExternalCounterparty, self).__init__(id, owner, balance,
+                                                   transactions)
 
         self.can_overdraw = True
