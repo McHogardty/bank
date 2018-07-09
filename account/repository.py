@@ -25,8 +25,9 @@ class AccountRepository:
     class DoesNotExist(Exception):
         pass
 
-    def __init__(self, database) -> None:
+    def __init__(self, database, manager) -> None:
         self.database = database
+        self.work_manager = manager
 
     def add(self, account: Account) -> None:
         if account.id is None:
@@ -39,7 +40,7 @@ class AccountRepository:
             'type': account_types[type(account)]
         }
 
-        self.database.insert(ACCOUNT_MODEL, account_record)
+        self.work_manager.add(ACCOUNT_MODEL, account_record)
 
         for t in account.transactions:
             transaction_record = {'id': t.id,
@@ -48,7 +49,7 @@ class AccountRepository:
                                   'type': t.type,
                                   'account': account.id}
 
-            self.database.insert(TRANSACTION_MODEL, transaction_record)
+            self.work_manager.add(TRANSACTION_MODEL, transaction_record)
 
     def get(self, account_id: UUID) -> Optional[Account]:
         try:
@@ -58,8 +59,8 @@ class AccountRepository:
                                                  'exist.'.format(account_id))
 
         account_class = None
-        for c, t in account_types.items():
-            if t == account_record['type']:
+        for c, account_type in account_types.items():
+            if account_type == account_record['type']:
                 account_class = c
 
         if account_class is None:
@@ -86,14 +87,14 @@ class AccountRepository:
                           'balance': account.balance,
                           'type': account_types[type(account)]}
 
-        self.database.update(ACCOUNT_MODEL, account_record)
+        self.work_manager.mark_dirty(ACCOUNT_MODEL, account_record)
 
         for t in account.transactions:
-            self.database.delete(TRANSACTION_MODEL, t.id)
+            self.work_manager.delete(TRANSACTION_MODEL, t.id)
             transaction_record = {'id': t.id,
                                   'reference': t.reference,
                                   'amount': t.amount,
                                   'type': t.type,
                                   'account': account.id}
 
-            self.database.insert(TRANSACTION_MODEL, transaction_record)
+            self.work_manager.add(TRANSACTION_MODEL, transaction_record)
