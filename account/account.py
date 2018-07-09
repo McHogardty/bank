@@ -65,9 +65,6 @@ class Account(Entity):
         else:
             self.balance -= transaction.amount
 
-    def _can_debit(self, amount: AUD) -> bool:
-        raise NotImplementedError
-
     def debit(self, amount: AUD, reference: UUID) -> None:
         if not self.can_overdraw and amount > self.balance:
             raise Account.InsufficientBalance("Account may not be in arrears.")
