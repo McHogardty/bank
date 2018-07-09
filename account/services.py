@@ -1,5 +1,5 @@
 
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from .values import AUD
 
@@ -30,8 +30,9 @@ class AccountTransferService:
         assert source_account is not None
         assert destination_account is not None
 
-        source_account.debit(amount)
-        destination_account.credit(amount)
+        reference = uuid4()
+        source_account.debit(amount, reference)
+        destination_account.credit(amount, reference)
 
         self.repository.update(source_account)
         self.repository.update(destination_account)

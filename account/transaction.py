@@ -16,9 +16,15 @@ class TransactionType(Enum):
 
 
 class Transaction(Entity):
-    def __init__(self, id: UUID = None, amount: AUD = None,
-                 type: TransactionType = None) -> None:
+    def __init__(self, id: UUID = None, reference: UUID = None,
+                 amount: AUD = None, type: TransactionType = None) -> None:
         super(Transaction, self).__init__(id=id)
+
+        if reference is None:
+            raise ValueError('Cannot create a transaction without a '
+                             'reference.')
+
+        self.reference = reference
 
         if type is None:
             raise ValueError('Transaction type must be specified.')
