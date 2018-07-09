@@ -1,13 +1,14 @@
 
 from uuid import UUID
 
-from .repository import AccountRepository
 from .values import AUD
 
 
 class AccountTransferService:
-    @classmethod
-    def transfer(cls, source: UUID = None, destination: UUID = None,
+    def __init__(self, repository):
+        self.repository = repository
+
+    def transfer(self, source: UUID = None, destination: UUID = None,
                  amount: AUD = None) -> None:
         if source is None:
             raise ValueError("Cannot transfer from a source of None.")
@@ -21,8 +22,8 @@ class AccountTransferService:
         if amount is None:
             raise ValueError("Cannot transfer an amount of None.")
 
-        source_account = AccountRepository.get(source)
-        destination_account = AccountRepository.get(destination)
+        source_account = self.repository.get(source)
+        destination_account = self.repository.get(destination)
 
         # The AccountRepository raises an exception if it does not exist.
         # This is mainly to make the type checker happy as this never occurs.
@@ -31,3 +32,6 @@ class AccountTransferService:
 
         source_account.debit(amount)
         destination_account.credit(amount)
+
+        self.repository.update(source_account)
+        self.repository.update(destination_account)
