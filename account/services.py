@@ -1,6 +1,7 @@
 
 from uuid import UUID, uuid4
 
+from .account import CardAccount
 from .values import AUD
 
 
@@ -21,6 +22,9 @@ class AccountTransferService:
 
         if amount is None:
             raise ValueError("Cannot transfer an amount of None.")
+
+        if isinstance(source, CardAccount):
+            raise ValueError("Cannot debit a card account.")
 
         source_account = self.repository.get(source)
         destination_account = self.repository.get(destination)
