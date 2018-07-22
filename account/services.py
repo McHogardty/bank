@@ -23,10 +23,11 @@ class AccountTransferService:
         if amount is None:
             raise ValueError("Cannot transfer an amount of None.")
 
-        if isinstance(source, CardAccount):
+        source_account = self.repository.get(source)
+
+        if isinstance(source_account, CardAccount):
             raise ValueError("Cannot debit a card account.")
 
-        source_account = self.repository.get(source)
         destination_account = self.repository.get(destination)
 
         # The AccountRepository raises an exception if it does not exist.
