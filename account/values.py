@@ -27,9 +27,16 @@ class AUD(Decimal):
         return AUD(super(AUD, self).__sub__(other))
 
 
-class CardNumber(str):
+class CardNumber:
+    def __init__(self, value: str) -> None:
+        self.value = value
+
     def __repr__(self) -> str:
-        return "CardNumber({!r})".format(super(CardNumber, self).__str__())
+        return "CardNumber({!r})".format(self.value)
 
     def __str__(self) -> str:
-        return " ".join(self[i:i + 4] for i in range(0, len(self), 4))
+        return " ".join(self.value[i:i + 4]
+                        for i in range(0, len(self.value), 4))
+
+    def __deepcopy__(self, memo=None) -> CardNumber:  # noqa
+        return CardNumber(self.value)
