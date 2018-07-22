@@ -57,8 +57,12 @@ class UnitOfWork:
 
 
 class WorkManager:
+    BEGIN_SCOPE = "begin"
+    END_SCOPE = "end"
+
     def __init__(self):
         self._current_unit = None
+        self._scope_listeners = []
 
     def unit(self):
         return UnitOfWork()
@@ -66,6 +70,7 @@ class WorkManager:
     @contextmanager
     def scope(self):
         self._current_unit = self.unit()
+        self.notify(self.BEGIN_SCOPE)
         try:
             yield self._current_unit
         except Exception:
@@ -75,6 +80,7 @@ class WorkManager:
             self._current_unit.commit()
         finally:
             self._current_unit = None
+            self.notify(self.END_SCOPE)
 
     def add(self, model_name: str, model_record: Record) -> None:
         self._current_unit.add(model_name, model_record)
@@ -84,3 +90,10 @@ class WorkManager:
 
     def delete(self, model_name: str, model_id: UUID) -> None:
         self._current_unit.delete(model_name, model_id)
+
+    def register_listener(self, listener):
+        self._scope_listeners.append(listener)
+
+    def notify(self, event):
+        for l in self._scope_listeners:
+            l.notify(event, self)
