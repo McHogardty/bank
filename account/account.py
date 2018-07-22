@@ -83,6 +83,17 @@ class RegularAccount(Account):
     pass
 
 
+class CardAccount(Account):
+    def __init__(self, id: UUID = None, owner: UUID = None,
+                 balance: AUD = None,
+                 transactions: List[Transaction] = None,
+                 card: Card = None) -> None:
+        super(CardAccount, self).__init__(id, owner, balance,
+                                          transactions)
+
+        self.card = card
+
+
 class ExternalCounterparty(Account):
     def __init__(self, id: UUID = None, owner: UUID = None,
                  balance: AUD = None,

@@ -18,8 +18,9 @@
  * The balance is assumed to be in Australian dollars (AUD).
  * The balance is represented as a decimal to two significant figures.
  * An account has an owner, representing the entity to whom the money contained in the account belongs.
- * There are two types of accounts: regular and external counterparty accounts.
+ * There are three types of accounts: regular, card and external counterparty accounts.
    * Regular accounts exist within the bank for representing a customer's money.
+   * Card accounts have a linked magnetic stripe card which can be used to make purchases. A card account has an associated Card entity.
    * External counterparty accounts represent external accounts which are debited or credited as a result of a corresponding debit or credit to an account within the bank. These external counterparty accounts exist for the purpose of double-entry bookkeeping.
  * A regular account may not be in arrears (i.e. it may not ever have a negative balance).
  * As a tool for record keeping, external counterparty account balances are not restricted.
@@ -27,3 +28,4 @@
 ## Account transfers
  * Money may be transferred between accounts.
  * An account may not have money transferred to itself (as this ends up being a null operation).
+ * Card accounts may only be credited during an account transfer. A card account may never be debited for the purposes of crediting another account.
