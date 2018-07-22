@@ -3,22 +3,25 @@ from enum import auto, Enum
 from typing import Optional
 from uuid import UUID
 
-from .account import Account, ExternalCounterparty, RegularAccount
+from .account import Account, CardAccount, ExternalCounterparty, RegularAccount
 from .transaction import Transaction
 
 
 class AccountType(Enum):
     REGULAR = auto()
     EXTERNAL_COUNTERPARTY = auto()
+    CARD = auto()
 
 
 account_types = {
     ExternalCounterparty: AccountType.EXTERNAL_COUNTERPARTY,
-    RegularAccount: AccountType.REGULAR
+    RegularAccount: AccountType.REGULAR,
+    CardAccount: AccountType.CARD
 }
 
 ACCOUNT_MODEL = 'account'
 TRANSACTION_MODEL = 'transaction'
+CARD_MODEL = 'card'
 
 
 class AccountRepository:
@@ -51,6 +54,13 @@ class AccountRepository:
 
             self.work_manager.add(TRANSACTION_MODEL, transaction_record)
 
+        if isinstance(account, CardAccount):
+            card_record = {'id': account.card.id,
+                           'number': account.card.number,
+                           'account': account.id}
+
+            self.work_manager.add(CARD_MODEL, card_record)
+
     def get(self, account_id: UUID) -> Optional[Account]:
         try:
             account_record = self.database.get(ACCOUNT_MODEL, account_id)
@@ -76,10 +86,16 @@ class AccountRepository:
             t.pop('account', None)
             transactions.append(Transaction(**t))
 
-        return account_class(id=account_record['id'],
-                             owner=account_record['owner'],
-                             balance=account_record['balance'],
-                             transactions=transactions)
+        account_kwargs = {'id': account_record['id'],
+                          'owner': account_record['owner'],
+                          'balance': account_record['balance'],
+                          'transactions': transactions}
+        if account_class == CardAccount:
+            card = self.database.find(CARD_MODEL,
+                                      lambda c: c['account'] == account_id)
+            account_kwargs['card'] = card
+
+        return account_class(**account_kwargs)
 
     def update(self, account: Account) -> None:
         account_record = {'id': account.id,
