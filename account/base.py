@@ -7,7 +7,7 @@ class Entity:
         self.id = id or uuid4()
 
     def __repr__(self) -> str:
-        properties = ['='.join((k, str(v))) for k, v in self.__dict__.items()
+        properties = ['='.join((k, repr(v))) for k, v in self.__dict__.items()
                       if k != 'id']
         properties.sort()
         return '{}(id={}{}{})'.format(self.__class__.__name__, self.id,
