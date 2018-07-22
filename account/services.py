@@ -41,3 +41,36 @@ class AccountTransferService:
 
         self.repository.update(source_account)
         self.repository.update(destination_account)
+
+
+class CardPurchaseService:
+    def __init__(self, repository):
+        self.repository = repository
+
+    def make_purchase(self, card_account: UUID = None,
+                      merchant: UUID = None,
+                      amount: AUD = None) -> None:
+        if card_account is None:
+            raise ValueError("Cannot make a purchase on a card account of "
+                             "None.")
+
+        if merchant is None:
+            raise ValueError("Cannot make a payment to a merchant of None.")
+
+        if amount is None:
+            raise ValueError("Cannot make a purchase of an amount of None.")
+
+        card_account = self.repository.get(card_account)
+
+        if not isinstance(card_account, CardAccount):
+            raise ValueError("Account {} is not a card account."
+                             .format(card_account))
+
+        merchant = self.repository.get(merchant)
+
+        reference = uuid4()
+        card_account.debit(amount, reference)
+        merchant.credit(amount, reference)
+
+        self.repository.update(card_account)
+        self.repository.update(merchant)
