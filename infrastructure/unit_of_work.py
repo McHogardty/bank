@@ -60,9 +60,12 @@ class WorkManager:
     def __init__(self):
         self._current_unit = None
 
-    @contextmanager
     def unit(self):
-        self._current_unit = UnitOfWork()
+        return UnitOfWork()
+
+    @contextmanager
+    def scope(self):
+        self._current_unit = self.unit()
         try:
             yield self._current_unit
         except Exception:

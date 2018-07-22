@@ -18,14 +18,14 @@ first_account = RegularAccount(owner=first_owner)
 second_owner_wallet = ExternalCounterparty(owner=second_owner)
 second_account = RegularAccount(owner=second_owner)
 
-with work_manager.unit():
+with work_manager.scope():
     account_repository.add(first_owner_wallet)
     account_repository.add(first_account)
     account_repository.add(second_owner_wallet)
     account_repository.add(second_account)
 
 # Start with some fake balances.
-with work_manager.unit():
+with work_manager.scope():
     transfer_service.transfer(source=first_owner_wallet.id,
                               destination=first_account.id,
                               amount=AUD('10'))
@@ -46,7 +46,7 @@ print()
 print("Transferring {!s} from first account to second account.".format(amount))
 print()
 
-with work_manager.unit():
+with work_manager.scope():
     transfer_service.transfer(source=first_account.id,
                               destination=second_account.id,
                               amount=amount)
@@ -60,7 +60,7 @@ print("Transferring {!s} from second account to first account.".format(amount))
 print()
 
 try:
-    with work_manager.unit():
+    with work_manager.scope():
         transfer_service.transfer(source=second_account.id,
                                   destination=first_account.id,
                                   amount=amount)
