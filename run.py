@@ -32,8 +32,6 @@ first_card_account = CardAccount(owner=first_owner,
 
 second_owner_wallet = ExternalCounterparty(owner=second_owner)
 second_account = RegularAccount(owner=second_owner)
-second_card_account = CardAccount(owner=second_owner,
-                                  card=Card(number=generate_card_number()))
 
 with work_manager.scope():
     account_repository.add(first_owner_wallet)
@@ -41,7 +39,6 @@ with work_manager.scope():
     account_repository.add(second_owner_wallet)
     account_repository.add(second_account)
     account_repository.add(first_card_account)
-    account_repository.add(second_card_account)
 
 # Start with some fake balances.
 with work_manager.scope():
@@ -53,17 +50,14 @@ with work_manager.scope():
                               amount=AUD('20'))
 
 print("First owner wallet is {}"
-      .format(account_repository.get(first_owner_wallet.id)))
+      .format(first_owner_wallet))
 print("Second owner wallet is {}"
-      .format(account_repository.get(second_owner_wallet.id)))
+      .format(second_owner_wallet))
 print()
-print("First account is {}".format(account_repository.get(first_account.id)))
-print("Second account is {}".format(account_repository.get(second_account.id)))
+print("First account is {}".format(first_account))
+print("Second account is {}".format(second_account))
 print()
-print("First card account is {}"
-      .format(account_repository.get(first_card_account.id)))
-print("Second card account is {}"
-      .format(account_repository.get(second_card_account.id)))
+print("First card account is {}".format(first_card_account))
 
 amount = AUD('5')
 print()
