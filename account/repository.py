@@ -3,6 +3,8 @@ from enum import auto, Enum
 from typing import Optional
 from uuid import UUID
 
+from infrastructure import WorkManager
+
 from .account import Account, CardAccount, ExternalCounterparty, RegularAccount
 from .transaction import Transaction
 
@@ -31,6 +33,11 @@ class AccountRepository:
     def __init__(self, database, manager) -> None:
         self.database = database
         self.work_manager = manager
+        self._instance_cache = {}
+
+    def notify(self, event, manager):
+        if event == WorkManager.END_SCOPE:
+            self._instance_cache = {}
 
     def add(self, account: Account) -> None:
         if account.id is None:
@@ -61,7 +68,12 @@ class AccountRepository:
 
             self.work_manager.add(CARD_MODEL, card_record)
 
+        self._instance_cache[account.id] = account
+
     def get(self, account_id: UUID) -> Optional[Account]:
+        if account_id in self._instance_cache:
+            return self._instance_cache[account_id]
+
         try:
             account_record = self.database.get(ACCOUNT_MODEL, account_id)
         except Exception:
@@ -95,7 +107,9 @@ class AccountRepository:
                                       lambda c: c['account'] == account_id)
             account_kwargs['card'] = card
 
-        return account_class(**account_kwargs)
+        instance = account_class(**account_kwargs)
+        self._instance_cache[account_id] = instance
+        return instance
 
     def update(self, account: Account) -> None:
         account_record = {'id': account.id,
