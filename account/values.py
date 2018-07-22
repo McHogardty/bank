@@ -25,3 +25,11 @@ class AUD(Decimal):
             return NotImplemented
 
         return AUD(super(AUD, self).__sub__(other))
+
+
+class CardNumber(str):
+    def __repr__(self) -> str:
+        return "CardNumber({!r})".format(super(CardNumber, self).__str__())
+
+    def __str__(self) -> str:
+        return " ".join(self[i:i + 4] for i in range(0, len(self), 4))
