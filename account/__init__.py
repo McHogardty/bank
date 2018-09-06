@@ -1,5 +1,10 @@
 
-from .account import ExternalCounterparty, RegularAccount
+from .account import (
+    Account,
+    CardAccount,
+    ExternalCounterparty,
+    RegularAccount,
+)
 from .repository import AccountRepository
 from .services import AccountTransferService
 from .transaction import Transaction

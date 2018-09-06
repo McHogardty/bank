@@ -6,6 +6,7 @@ from typing import List
 from uuid import UUID
 
 from .base import Entity
+from .card import Card
 from .transaction import Transaction, TransactionType
 from .values import AUD
 
