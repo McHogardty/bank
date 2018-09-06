@@ -43,7 +43,8 @@ class Transaction(Entity):
         new_id = deepcopy(self.id)
         new_amount = deepcopy(self.amount)
         new_type = deepcopy(self.type)
+        new_reference = deepcopy(self.reference)
         new_transaction = type(self)(id=new_id, amount=new_amount,
-                                     type=new_type)
+                                     type=new_type, reference=new_reference)
 
         return new_transaction
