@@ -1,7 +1,5 @@
 
-import copy
 from enum import auto, Enum
-from typing import Any, Dict
 from uuid import UUID
 
 from account import (
@@ -13,10 +11,7 @@ from account import (
 )
 from account.repository import AccountRepository
 
-
-AccountCache = Dict[UUID, Account]
-StorageRecord = Dict[str, Any]
-MemoryStore = Dict[UUID, StorageRecord]
+from .memory_store import MemoryStore, StorageRecord
 
 
 class AccountType(Enum):
@@ -32,10 +27,13 @@ account_types = {
 }
 
 
+ACCOUNT_MODEL = 'account'
+TRANSACTION_MODEL = 'transaction'
+
+
 class InMemoryRepository(AccountRepository):
-    def __init__(self):
-        self._account_store: MemoryStore = {}
-        self._transaction_store: MemoryStore = {}
+    def __init__(self, memory_store: MemoryStore) -> None:
+        self._store = memory_store
 
     def _account_to_record(self, account: Account) -> StorageRecord:
         return {
@@ -58,11 +56,9 @@ class InMemoryRepository(AccountRepository):
 
     def get(self, account_id: UUID) -> Account:
         try:
-            record = self._account_store[account_id]
-        except KeyError:
+            record = self._store.get(ACCOUNT_MODEL, account_id)
+        except Exception:
             raise AccountRepository.DoesNotExist
-
-        record = copy.deepcopy(record)
 
         account_class = None
         record_type = record.pop('type')
@@ -74,27 +70,34 @@ class InMemoryRepository(AccountRepository):
             raise ValueError('Encountered account record with unknown account'
                              ' type {}'.format(record_type))
 
-        return account_class(**record)
+        def find_transaction(record):
+            return record['account'] == account_id
+
+        transaction_records = self._store.find(
+            TRANSACTION_MODEL,
+            lambda r: r["account"] == account_id,
+        )
+
+        transactions = []
+        for t in transaction_records:
+            t.pop('account')
+            transactions.append(Transaction(**t))
+
+        instance = account_class(transactions=transactions, **record)
+        return instance
 
     def add(self, account: Account) -> None:
-        account = copy.deepcopy(account)
-        self._account_store[account.id] = self._account_to_record(account)
-
-        for t in account.transactions:
-            self._transaction_store[t.id] = \
-                self._transaction_to_record(t, account)
-
-    def update(self, account: Account):
-        account = copy.deepcopy(account)
         record = self._account_to_record(account)
-        try:
-            self._account_store[account.id].update(record)
-        except KeyError:
-            self._account_store[account.id] = record
+        self._store.add(ACCOUNT_MODEL, account.id, record)
 
         for t in account.transactions:
             record = self._transaction_to_record(t, account)
-            try:
-                self._transaction_store[t.id].update(record)
-            except KeyError:
-                self._transaction_store[t.id] = record
+            self._store.add(TRANSACTION_MODEL, t.id, record)
+
+    def update(self, account: Account) -> None:
+        record = self._account_to_record(account)
+        self._store.update(ACCOUNT_MODEL, account.id, record)
+
+        for t in account.transactions:
+            record = self._transaction_to_record(t, account)
+            self._store.update(TRANSACTION_MODEL, t.id, record)
