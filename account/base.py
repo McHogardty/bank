@@ -1,4 +1,6 @@
 
+from abc import ABCMeta, abstractmethod
+from typing import Generic, TypeVar
 from uuid import UUID, uuid4
 
 
@@ -19,3 +21,20 @@ class Entity:
             return NotImplemented
 
         return self.__class__ == other.__class__ and self.id == other.id
+
+
+E = TypeVar('E')
+
+
+class Repository(Generic[E]):
+    @abstractmethod
+    def get(self, id: UUID) -> E:
+        pass
+
+    @abstractmethod
+    def add(self, entity: E) -> None:
+        pass
+
+    @abstractmethod
+    def update(self, entity: E) -> None:
+        pass
