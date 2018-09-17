@@ -5,6 +5,7 @@ from .account import (
     ExternalCounterparty,
     RegularAccount,
 )
+from .base import Entity, Repository
 from .card import Card
 from .repository import AccountRepository
 from .services import (AccountTransferService, CardPurchaseService)
@@ -20,7 +21,9 @@ __all__ = (
     'CardAccount',
     'CardNumber',
     'CardPurchaseService',
+    'Entity',
     'ExternalCounterparty',
     'RegularAccount',
+    'Repository',
     'Transaction',
 )
