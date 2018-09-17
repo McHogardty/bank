@@ -1,11 +1,12 @@
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from uuid import UUID
 
 from .account import Account
+from .base import Repository
 
 
-class AccountRepository(metaclass=ABCMeta):
+class AccountRepository(Repository[Account]):
     class DoesNotExist(Exception):
         pass
 
