@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import List
+from typing import Iterable, List
 from uuid import UUID
 
 from .base import Entity
@@ -17,7 +17,7 @@ class Account(Entity):
 
     def __init__(self, id: UUID = None, owner: UUID = None,
                  balance: AUD = None,
-                 transactions: List[Transaction] = None) -> None:
+                 transactions: Iterable[Transaction] = None) -> None:
         super(Account, self).__init__(id=id)
 
         if owner is None:
@@ -87,7 +87,7 @@ class RegularAccount(Account):
 class CardAccount(Account):
     def __init__(self, id: UUID = None, owner: UUID = None,
                  balance: AUD = None,
-                 transactions: List[Transaction] = None,
+                 transactions: Iterable[Transaction] = None,
                  card: Card = None) -> None:
         super(CardAccount, self).__init__(id, owner, balance,
                                           transactions)
@@ -98,7 +98,7 @@ class CardAccount(Account):
 class ExternalCounterparty(Account):
     def __init__(self, id: UUID = None, owner: UUID = None,
                  balance: AUD = None,
-                 transactions: List[Transaction] = None) -> None:
+                 transactions: Iterable[Transaction] = None) -> None:
         super(ExternalCounterparty, self).__init__(id, owner, balance,
                                                    transactions)
 
