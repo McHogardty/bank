@@ -24,7 +24,6 @@ def generate_card_number():
 store = MemoryStore()
 work_manager = WorkManager(store)
 master_repository = InMemoryRepository(store)
-# purchase_service = CardPurchaseService(account_repository)
 
 first_owner = uuid.uuid4()
 second_owner = uuid.uuid4()
