@@ -1,5 +1,6 @@
 
 from enum import auto, Enum
+from typing import Mapping
 from uuid import UUID
 
 from account import (
@@ -13,6 +14,9 @@ from account import (
 from account.repository import AccountRepository
 
 from .memory_store import MemoryStore, StorageRecord
+
+
+AccountCache = Mapping[UUID, Account]
 
 
 class AccountType(Enum):
@@ -42,7 +46,8 @@ class InMemoryRepository(AccountRepository):
             'id': account.id,
             'owner': account.owner,
             'balance': account.balance,
-            'type': account_types[type(account)]
+            'type': account_types[type(account)],
+            'parent': None if account.parent is None else account.parent.id,
         }
 
     def _transaction_to_record(self,
@@ -53,14 +58,14 @@ class InMemoryRepository(AccountRepository):
             'reference': transaction.reference,
             'amount': transaction.amount,
             'type': transaction.type,
-            'account': account.id
+            'account': account.id,
         }
 
     def _card_to_record(self, card: Card, account: Account) -> StorageRecord:
         return {
             'id': card.id,
             'number': card.number,
-            'account': account.id
+            'account': account.id,
         }
 
     def get(self, account_id: UUID) -> Account:
@@ -106,6 +111,11 @@ class InMemoryRepository(AccountRepository):
             card_record.pop('account')
             record['card'] = Card(**card_record)
 
+        parent = record.pop('parent')
+        if parent is not None:
+            parent = self.get(parent)
+            record['parent'] = parent
+
         instance = account_class(**record)
         return instance
 
@@ -121,6 +131,9 @@ class InMemoryRepository(AccountRepository):
             record = self._card_to_record(account.card, account)
             self._store.add(CARD_MODEL, account.card.id, record)
 
+        if account.parent is not None:
+            self.add(account.parent)
+
     def update(self, account: Account) -> None:
         record = self._account_to_record(account)
         self._store.update(ACCOUNT_MODEL, account.id, record)
@@ -128,3 +141,6 @@ class InMemoryRepository(AccountRepository):
         for t in account.transactions:
             record = self._transaction_to_record(t, account)
             self._store.update(TRANSACTION_MODEL, t.id, record)
+
+        if account.parent is not None:
+            self.update(account.parent)
