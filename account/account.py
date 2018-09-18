@@ -92,6 +92,8 @@ class CardAccount(Account):
         super(CardAccount, self).__init__(id, owner, balance,
                                           transactions)
 
+        if card is None:
+            raise ValueError("Cannot create a card account without a card.")
         self.card = card
 
 
