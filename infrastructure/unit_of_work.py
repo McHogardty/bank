@@ -48,5 +48,6 @@ class WorkManager:
             yield current_unit
         except Exception:
             current_unit.rollback()
+            raise
         else:
             current_unit.commit()
