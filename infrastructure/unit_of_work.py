@@ -1,99 +1,52 @@
 
 from contextlib import contextmanager
-from copy import deepcopy
-from uuid import UUID
+from typing import Callable, Dict, Iterator
 
-from .database import Database, Record
+from account import Repository
+
+from .memory_store import MemoryStore
+
+
+RepositoryFactory = Callable[[MemoryStore], Repository]
 
 
 class UnitOfWork:
-    def __init__(self):
-        self._new_records = []
-        self._dirty_records = []
-        self._deleted_records = []
+    def __init__(self, store):
+        self._factories: Dict[RepositoryFactory, Repository] = {}
+        self._store: MemoryStore = store
 
-    def add(self, model_name: str, model_record: Record) -> None:
-        self._new_records.append((model_name, deepcopy(model_record)))
-
-    def mark_dirty(self, model_name: str, model_record: Record) -> None:
-        model_index = None
-
-        for i in range(len(self._dirty_records)):
-            m, record = self._dirty_records[i]
-            if m == model_name and record['id'] == model_record['id']:
-                model_index = i
-                break
-
-        if model_index is not None:
-            self._dirty_records[model_index] = (model_name, model_record)
-        else:
-            self._dirty_records.append((model_name, model_record))
-
-    def delete(self, model_name: str, model_id: UUID) -> None:
-        self._deleted_records.append((model_name, model_id))
-
-    def commit(self):
-        self._save_records()
-
-    def rollback(self):
-        self._new_records = []
-        self._dirty_records = []
-        self._deleted_records = []
-
-    def _save_records(self):
+    def get(self, factory: RepositoryFactory) -> Repository:
         try:
-            for model_name, model_id in self._deleted_records:
-                Database.delete(model_name, model_id)
+            return self._factories[factory]
+        except KeyError:
+            self._factories[factory] = repo = factory(self._store)
+            return repo
 
-            for model_name, model_record in self._new_records:
-                Database.insert(model_name, model_record)
+    def begin(self) -> None:
+        self._store.begin()
 
-            for model_name, model_record in self._dirty_records:
-                Database.update(model_name, model_record)
-        finally:
-            self._new_records = []
-            self._dirty_records = []
-            self._deleted_records = []
+    def commit(self) -> None:
+        self._store.commit()
+
+    def rollback(self) -> None:
+        self._store.rollback()
 
 
 class WorkManager:
-    BEGIN_SCOPE = "begin"
-    END_SCOPE = "end"
+    def __init__(self, store):
+        self._store = store
 
-    def __init__(self):
-        self._current_unit = None
-        self._scope_listeners = []
-
-    def unit(self):
-        return UnitOfWork()
+    def unit(self) -> UnitOfWork:
+        return UnitOfWork(self._store)
 
     @contextmanager
-    def scope(self):
-        self._current_unit = self.unit()
-        self.notify(self.BEGIN_SCOPE)
+    def scope(self) -> Iterator[UnitOfWork]:
+        current_unit = UnitOfWork(self._store)
+
+        current_unit.begin()
         try:
-            yield self._current_unit
+            yield current_unit
         except Exception:
-            self._current_unit.rollback()
-            raise
+            current_unit.rollback()
         else:
-            self._current_unit.commit()
-        finally:
-            self._current_unit = None
-            self.notify(self.END_SCOPE)
-
-    def add(self, model_name: str, model_record: Record) -> None:
-        self._current_unit.add(model_name, model_record)
-
-    def mark_dirty(self, model_name: str, model_record: Record) -> None:
-        self._current_unit.mark_dirty(model_name, model_record)
-
-    def delete(self, model_name: str, model_id: UUID) -> None:
-        self._current_unit.delete(model_name, model_id)
-
-    def register_listener(self, listener):
-        self._scope_listeners.append(listener)
-
-    def notify(self, event):
-        for l in self._scope_listeners:
-            l.notify(event, self)
+            current_unit.commit()
