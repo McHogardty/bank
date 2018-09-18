@@ -95,14 +95,14 @@ class InMemoryRepository(AccountRepository):
         record['transactions'] = transactions
 
         if account_class == CardAccount:
-            card_record = list(self._store.find(
+            result = list(self._store.find(
                 CARD_MODEL,
                 lambda c: c['account'] == account_id
             ))
-            if len(card_record) != 1:
+            if len(result) != 1:
                 raise ValueError('Encountered a card account {} with no '
                                  'associated card.'.format(account_id))
-            card_record = card_record[0]
+            card_record = result[0]
             card_record.pop('account')
             record['card'] = Card(**card_record)
 
