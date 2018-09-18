@@ -4,6 +4,7 @@ from uuid import UUID
 
 from account import (
     Account,
+    Card,
     CardAccount,
     ExternalCounterparty,
     RegularAccount,
@@ -29,6 +30,7 @@ account_types = {
 
 ACCOUNT_MODEL = 'account'
 TRANSACTION_MODEL = 'transaction'
+CARD_MODEL = 'card'
 
 
 class InMemoryRepository(AccountRepository):
@@ -45,12 +47,19 @@ class InMemoryRepository(AccountRepository):
 
     def _transaction_to_record(self,
                                transaction: Transaction,
-                               account: Account) -> StorageRecord:  # noqa
+                               account: Account) -> StorageRecord:
         return {
             'id': transaction.id,
             'reference': transaction.reference,
             'amount': transaction.amount,
             'type': transaction.type,
+            'account': account.id
+        }
+
+    def _card_to_record(self, card: Card, account: Account) -> StorageRecord:
+        return {
+            'id': card.id,
+            'number': card.number,
             'account': account.id
         }
 
@@ -83,7 +92,21 @@ class InMemoryRepository(AccountRepository):
             t.pop('account')
             transactions.append(Transaction(**t))
 
-        instance = account_class(transactions=transactions, **record)
+        record['transactions'] = transactions
+
+        if account_class == CardAccount:
+            card_record = list(self._store.find(
+                CARD_MODEL,
+                lambda c: c['account'] == account_id
+            ))
+            if len(card_record) != 1:
+                raise ValueError('Encountered a card account {} with no '
+                                 'associated card.'.format(account_id))
+            card_record = card_record[0]
+            card_record.pop('account')
+            record['card'] = Card(**card_record)
+
+        instance = account_class(**record)
         return instance
 
     def add(self, account: Account) -> None:
@@ -93,6 +116,10 @@ class InMemoryRepository(AccountRepository):
         for t in account.transactions:
             record = self._transaction_to_record(t, account)
             self._store.add(TRANSACTION_MODEL, t.id, record)
+
+        if isinstance(account, CardAccount):
+            record = self._card_to_record(account.card, account)
+            self._store.add(CARD_MODEL, account.card.id, record)
 
     def update(self, account: Account) -> None:
         record = self._account_to_record(account)
