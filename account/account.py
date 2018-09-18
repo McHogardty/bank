@@ -15,8 +15,10 @@ class Account(Entity):
     class InsufficientBalance(Exception):
         pass
 
+    can_overdraw = False
+
     def __init__(self, id: UUID = None, owner: UUID = None,
-                 balance: AUD = None,
+                 balance: AUD = None, parent: Account = None,
                  transactions: Iterable[Transaction] = None) -> None:
         super(Account, self).__init__(id=id)
 
@@ -25,16 +27,12 @@ class Account(Entity):
 
         self.transactions: List[Transaction] = []
         self.owner = owner
-        self.can_overdraw = False
+        self.parent = parent
 
         if transactions is not None:
             self.balance = AUD('0')
             for t in transactions:
                 self._add_transaction(t)
-
-            if balance is not None and self.balance != balance:
-                raise ValueError('Provided balance does not match sum of '
-                                 'transactions.')
         else:
             self.balance = AUD('0') if balance is None else balance
 
@@ -42,10 +40,11 @@ class Account(Entity):
         new_copy = type(self)(id=self.id, owner=self.owner)
         new_copy.balance = self.balance
         new_copy.transactions = self.transactions
+        new_copy.parent = self.parent
 
         return new_copy
 
-    def __deepcopy__(self, memo) -> Account:  # noqa
+    def __deepcopy__(self, memo) -> Account:
         self_id = id(self)
         if self_id in memo:
             return memo[self_id]
@@ -55,6 +54,7 @@ class Account(Entity):
         new_account = type(self)(id=new_id, owner=new_owner)
         new_account.balance = deepcopy(self.balance)
         new_account.transactions = deepcopy(self.transactions)
+        new_account.parent = deepcopy(self.parent)
 
         return new_account
 
@@ -74,10 +74,16 @@ class Account(Entity):
                                           type=TransactionType.DEBIT,
                                           reference=reference))
 
+        if self.parent is not None:
+            self.parent.debit(amount, reference)
+
     def credit(self, amount: AUD, reference: UUID) -> None:
         self._add_transaction(Transaction(amount=amount,
                                           type=TransactionType.CREDIT,
                                           reference=reference))
+
+        if self.parent is not None:
+            self.parent.credit(amount, reference)
 
 
 class RegularAccount(Account):
@@ -85,11 +91,13 @@ class RegularAccount(Account):
 
 
 class CardAccount(Account):
+    can_overdraw = True
+
     def __init__(self, id: UUID = None, owner: UUID = None,
-                 balance: AUD = None,
+                 balance: AUD = None, parent: Account = None,
                  transactions: Iterable[Transaction] = None,
                  card: Card = None) -> None:
-        super(CardAccount, self).__init__(id, owner, balance,
+        super(CardAccount, self).__init__(id, owner, balance, parent,
                                           transactions)
 
         if card is None:
@@ -98,10 +106,10 @@ class CardAccount(Account):
 
 
 class ExternalCounterparty(Account):
-    def __init__(self, id: UUID = None, owner: UUID = None,
-                 balance: AUD = None,
-                 transactions: Iterable[Transaction] = None) -> None:
-        super(ExternalCounterparty, self).__init__(id, owner, balance,
-                                                   transactions)
+    can_overdraw = True
 
-        self.can_overdraw = True
+    def __init__(self, id: UUID = None, owner: UUID = None,
+                 balance: AUD = None, parent: Account = None,
+                 transactions: Iterable[Transaction] = None) -> None:
+        super(ExternalCounterparty, self).__init__(id, owner, balance, parent,
+                                                   transactions)
