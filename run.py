@@ -31,16 +31,19 @@ second_owner = uuid.uuid4()
 first_owner_wallet = ExternalCounterparty(owner=first_owner)
 first_account = RegularAccount(owner=first_owner)
 first_card_account = CardAccount(owner=first_owner,
+                                 parent=first_account,
                                  card=Card(number=generate_card_number()))
 
 second_owner_wallet = ExternalCounterparty(owner=second_owner)
 second_account = RegularAccount(owner=second_owner)
 
-master_repository.add(first_owner_wallet)
-master_repository.add(first_account)
-master_repository.add(second_owner_wallet)
-master_repository.add(second_account)
-master_repository.add(first_card_account)
+with work_manager.scope() as SCOPE:
+    account_repository = SCOPE.get(InMemoryRepository)
+    account_repository.add(first_owner_wallet)
+    account_repository.add(first_account)
+    account_repository.add(second_owner_wallet)
+    account_repository.add(second_account)
+    account_repository.add(first_card_account)
 
 # Start with some fake balances.
 with work_manager.scope() as SCOPE:
@@ -52,16 +55,17 @@ with work_manager.scope() as SCOPE:
                               destination=second_account.id,
                               amount=AUD('20'))
 
+account_repository = InMemoryRepository(store)
 print("First owner wallet is {}"
-      .format(master_repository.get(first_owner_wallet.id)))
+      .format(account_repository.get(first_owner_wallet.id)))
 print("Second owner wallet is {}"
-      .format(master_repository.get(second_owner_wallet.id)))
+      .format(account_repository.get(second_owner_wallet.id)))
 print()
-print("First account is {}".format(master_repository.get(first_account.id)))
-print("Second account is {}".format(master_repository.get(second_account.id)))
+print("First account is {}".format(account_repository.get(first_account.id)))
+print("Second account is {}".format(account_repository.get(second_account.id)))
 print()
 print("First card account is {}"
-      .format(master_repository.get(first_card_account.id)))
+      .format(account_repository.get(first_card_account.id)))
 
 amount = AUD('5')
 print()
@@ -76,8 +80,9 @@ transfer_service.transfer(source=first_account.id,
                           amount=amount)
 SCOPE.commit()
 
-print("First account is {}".format(master_repository.get(first_account.id)))
-print("Second account is {}".format(master_repository.get(second_account.id)))
+account_repository = InMemoryRepository(store)
+print("First account is {}".format(account_repository.get(first_account.id)))
+print("Second account is {}".format(account_repository.get(second_account.id)))
 
 amount = AUD('10.5')
 print()
@@ -98,8 +103,9 @@ try:
 except ValueError:
     pass
 
-print("First account is {}".format(master_repository.get(first_account.id)))
-print("Second account is {}".format(master_repository.get(second_account.id)))
+account_repository = InMemoryRepository(store)
+print("First account is {}".format(account_repository.get(first_account.id)))
+print("Second account is {}".format(account_repository.get(second_account.id)))
 
 amount = AUD('5')
 print()
@@ -114,12 +120,15 @@ with work_manager.scope() as SCOPE:
                               destination=first_card_account.id,
                               amount=amount)
 
-print("First account is {}".format(master_repository.get(first_account.id)))
+account_repository = InMemoryRepository(store)
+print("First account is {}".format(account_repository.get(first_account.id)))
 print("First card account is {}"
-      .format(master_repository.get(first_card_account.id)))
+      .format(account_repository.get(first_card_account.id)))
 
 merchant = ExternalCounterparty(owner=uuid.uuid4())
-master_repository.add(merchant)
+with work_manager.scope() as SCOPE:
+    account_repository = SCOPE.get(InMemoryRepository)
+    account_repository.add(merchant)
 
 amount = AUD('2.5')
 print()
@@ -133,6 +142,8 @@ with work_manager.scope() as SCOPE:
                                    merchant=merchant.id,
                                    amount=amount)
 
+account_repository = InMemoryRepository(store)
 print("First card account is {}"
-      .format(master_repository.get(first_card_account.id)))
-print("Merchant is {}".format(master_repository.get(merchant.id)))
+      .format(account_repository.get(first_card_account.id)))
+print("Merchant is {}".format(account_repository.get(merchant.id)))
+print("First account is {}".format(account_repository.get(first_account.id)))
