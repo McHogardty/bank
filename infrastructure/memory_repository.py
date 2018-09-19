@@ -1,6 +1,6 @@
 
 from enum import auto, Enum
-from typing import Mapping
+from typing import Dict
 from uuid import UUID
 
 from account import (
@@ -16,7 +16,7 @@ from account.repository import AccountRepository
 from .memory_store import MemoryStore, StorageRecord
 
 
-AccountCache = Mapping[UUID, Account]
+AccountCache = Dict[UUID, Account]
 
 
 class AccountType(Enum):
@@ -40,6 +40,7 @@ CARD_MODEL = 'card'
 class InMemoryRepository(AccountRepository):
     def __init__(self, memory_store: MemoryStore) -> None:
         self._store = memory_store
+        self._cache: AccountCache = {}
 
     def _account_to_record(self, account: Account) -> StorageRecord:
         return {
@@ -69,6 +70,11 @@ class InMemoryRepository(AccountRepository):
         }
 
     def get(self, account_id: UUID) -> Account:
+        try:
+            return self._cache[account_id]
+        except KeyError:
+            pass
+
         try:
             record = self._store.get(ACCOUNT_MODEL, account_id)
         except Exception:
@@ -116,7 +122,7 @@ class InMemoryRepository(AccountRepository):
             parent = self.get(parent)
             record['parent'] = parent
 
-        instance = account_class(**record)
+        self._cache[account_id] = instance = account_class(**record)
         return instance
 
     def add(self, account: Account) -> None:
@@ -134,6 +140,8 @@ class InMemoryRepository(AccountRepository):
         if account.parent is not None:
             self.add(account.parent)
 
+        self._cache[account.id] = account
+
     def update(self, account: Account) -> None:
         record = self._account_to_record(account)
         self._store.update(ACCOUNT_MODEL, account.id, record)
@@ -144,3 +152,5 @@ class InMemoryRepository(AccountRepository):
 
         if account.parent is not None:
             self.update(account.parent)
+
+        self._cache[account.id] = account
