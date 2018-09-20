@@ -33,6 +33,9 @@ first_account = RegularAccount(owner=first_owner)
 first_card_account = CardAccount(owner=first_owner,
                                  parent=first_account,
                                  card=Card(number=generate_card_number()))
+second_card_account = CardAccount(owner=first_owner,
+                                  parent=first_account,
+                                  card=Card(number=generate_card_number()))
 
 second_owner_wallet = ExternalCounterparty(owner=second_owner)
 second_account = RegularAccount(owner=second_owner)
@@ -44,6 +47,7 @@ with work_manager.scope() as SCOPE:
     account_repository.add(second_owner_wallet)
     account_repository.add(second_account)
     account_repository.add(first_card_account)
+    account_repository.add(second_card_account)
 
 # Start with some fake balances.
 with work_manager.scope() as SCOPE:
@@ -145,5 +149,23 @@ with work_manager.scope() as SCOPE:
 account_repository = InMemoryRepository(store)
 print("First card account is {}"
       .format(account_repository.get(first_card_account.id)))
+print("Merchant is {}".format(account_repository.get(merchant.id)))
+print("First account is {}".format(account_repository.get(first_account.id)))
+
+amount = AUD('5.5')
+print()
+print("Making a purchase of {!s} from the merchant to the second card account."
+      .format(amount))
+print()
+
+with work_manager.scope() as SCOPE:
+    purchase_service = CardPurchaseService(SCOPE.get(InMemoryRepository))
+    purchase_service.make_purchase(card_account=second_card_account.id,
+                                   merchant=merchant.id,
+                                   amount=amount)
+
+account_repository = InMemoryRepository(store)
+print("First card account is {}"
+      .format(account_repository.get(second_card_account.id)))
 print("Merchant is {}".format(account_repository.get(merchant.id)))
 print("First account is {}".format(account_repository.get(first_account.id)))
