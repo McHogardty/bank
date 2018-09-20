@@ -1,5 +1,5 @@
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from typing import Generic, TypeVar
 from uuid import UUID, uuid4
 
