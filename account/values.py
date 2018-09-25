@@ -46,3 +46,6 @@ class CardNumber:
 
     def __deepcopy__(self, memo=None) -> CardNumber:  # noqa
         return CardNumber(self.value)
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, CardNumber) and other.value == self.value
