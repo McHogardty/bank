@@ -4,6 +4,7 @@ from uuid import UUID
 
 from .account import Account
 from .base import Repository
+from .values import CardNumber
 
 
 class AccountRepository(Repository[Account]):
@@ -20,4 +21,8 @@ class AccountRepository(Repository[Account]):
 
     @abstractmethod
     def update(self, account: Account) -> None:
+        pass
+
+    @abstractmethod
+    def find_by_card_number(self, card_number: CardNumber) -> Account:
         pass
