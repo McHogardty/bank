@@ -9,7 +9,10 @@ class AUD(Decimal):
         return "AUD({!r})".format(super(AUD, self).__str__())
 
     def __str__(self) -> str:
-        return "${}".format(self)
+        if self < 0:
+            return "-${}".format(-self)
+        else:
+            return "${}".format(self)
 
     def __deepcopy__(self, memo=None) -> AUD:  # noqa
         return AUD(super(AUD, self).__deepcopy__(memo))
