@@ -10,21 +10,22 @@
  * A transaction amount is represented as a decimal to two significant figures.
  * Transactions are recording using a system known as 'double-entry bookkeeping'. Every transfer of money is recorded as a debit against one account and a credit against another.
  * The credit and debit of a transaction are linked by a transaction reference, which is a unique identifier. External stakeholders will identify a transaction based on this reference.
+ * Transactions have a status, representing the state of a particular transaction. There are two statuses:
+    - Pending: A transfer of money has been requested, but requires some further process before the transfer may be performed.
+    - Settled: The transfer of money has been completed.
 
 ## Accounts
  * An account is a collection of transactions.
  * An account has a balance, which is the sum of all of the transactions recorded against this account. Simply, balance = sum(credit transactions) - sum(debit transactions)
  * The balance is assumed to be in Australian dollars (AUD).
- * The balance is represented as a decimal.
+ * There are two components to the balance - the available amount and the pending amount. The available amount is the sum of all settled transactions, while the pending amount is the sum of all pending transactions.
+ * Each component of the balance is represented as a decimal.
  * An account has an owner, representing the entity to whom the money contained in the account belongs.
  * There are two types of accounts: regular, card and external counterparty accounts.
    * Regular accounts exist within the bank for representing a customer's money.
    * External counterparty accounts represent external accounts which are debited or credited as a result of a corresponding debit or credit to an account within the bank. These external counterparty accounts exist for the purpose of double-entry bookkeeping.
- * A regular account may not be in arrears (i.e. it may not ever have a negative balance).
+ * A regular account may not be in arrears (i.e. it may not ever have a negative available balance).
  * As a tool for record keeping, external counterparty account balances are not restricted.
-
-
-   * Card accounts have a linked magnetic stripe card which can be used to make purchases. A card account has an associated Card entity.
 
 ## Subaccounts
  * An account actually consists of one or more subaccounts, which provide logical groupings for the transactions contained within an account.
@@ -43,7 +44,9 @@
 ## Account transfers
  * Money may be transferred between accounts.
  * An account may not have money transferred to itself (as this ends up being a null operation).
+ * Account transfers are settled immediately.
 
 ## Card purchases
  * Cards may be used at EFTPOS terminals to make a purchase.
  * When this occurs, the associated subaccount is debited by the purchase amount.
+ * Card purchases are entered in a pending state. They are then settled later.

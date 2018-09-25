@@ -7,8 +7,8 @@ from uuid import UUID
 
 from .base import Entity
 from .card import Card
-from .transaction import Transaction, TransactionType
-from .values import AUD, CardNumber
+from .transaction import Transaction, TransactionStatus, TransactionType
+from .values import AUD, Balance, CardNumber
 
 
 class SubAccount(Entity):
@@ -43,17 +43,36 @@ class SubAccount(Entity):
 
     @property
     def balance(self):
-        if not self.transactions:
-            return AUD('0')
+        balance = Balance(AUD('0'), AUD('0'))
 
-        credits = filter(lambda t: t.type == TransactionType.CREDIT,
-                         self.transactions)
+        for t in self.transactions:
+            balance = t.adjust(balance)
 
-        debits = filter(lambda t: t.type == TransactionType.DEBIT,
-                        self.transactions)
+        return balance
 
-        return AUD(sum(t.amount for t in credits) -
-                   sum(t.amount for t in debits))
+        # balance =
+        def is_pending(self, t):
+            return t.status == TransactionStatus.PENDING
+
+        def is_settled(self, t):
+            return t.status == TransactionStatus.SETTLED
+
+        available = AUD('0')
+        pending = AUD('0')
+
+        for t in self.transactions:
+            if t.status == TransactionStatus.PENDING:
+                if t.type == TransactionType.CREDIT:
+                    pending += t.amount
+                else:
+                    pending -= t.amount
+            else:
+                if t.type == TransactionType.CREDIT:
+                    available += t.amount
+                else:
+                    available -= t.amount
+
+        return Balance(available=available, pending=pending)
 
 
 class RegularSubAccount(SubAccount):
@@ -96,7 +115,7 @@ class Account(Entity):
 
     @property
     def balance(self):
-        return AUD(sum(s.balance for s in self.subaccounts))
+        return sum(s.balance for s in self.subaccounts)
 
     @property
     def default_subaccount(self):
@@ -124,13 +143,14 @@ class Account(Entity):
     def debit(self,
               amount: AUD = None,
               reference: UUID = None) -> None:
-        if not self.can_overdraw and amount > self.balance:
+        if not self.can_overdraw and amount > self.balance.available:
             raise Account.InsufficientBalance("Account may not be in arrears.")
 
         self._add_transaction(self.default_subaccount,
                               Transaction(amount=amount,
                                           type=TransactionType.DEBIT,
-                                          reference=reference))
+                                          reference=reference,
+                                          status=TransactionStatus.SETTLED))
 
     def debit_card(self,
                    card_number: CardNumber = None,
@@ -145,7 +165,7 @@ class Account(Entity):
             raise ValueError('No subaccount matching card number {}.'
                              .format(card_number))
 
-        if not self.can_overdraw and amount > self.balance:
+        if not self.can_overdraw and amount > self.balance.available:
             raise Account.InsufficientBalance("Account may not be in arrears.")
 
         self._add_transaction(card_account,
@@ -159,7 +179,8 @@ class Account(Entity):
         self._add_transaction(self.default_subaccount,
                               Transaction(amount=amount,
                                           type=TransactionType.CREDIT,
-                                          reference=reference))
+                                          reference=reference,
+                                          status=TransactionStatus.SETTLED))
 
 
 class RegularAccount(Account):

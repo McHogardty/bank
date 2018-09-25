@@ -81,6 +81,7 @@ class InMemoryRepository(AccountRepository):
             'amount': transaction.amount,
             'type': transaction.type,
             'account': account.id,
+            'status': transaction.status,
         }
 
     def _card_to_record(self,
