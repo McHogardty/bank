@@ -1,5 +1,5 @@
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from typing import Generic, TypeVar
 from uuid import UUID, uuid4
 
@@ -26,7 +26,7 @@ class Entity:
 E = TypeVar('E')
 
 
-class Repository(Generic[E]):
+class Repository(Generic[E], metaclass=ABCMeta):
     @abstractmethod
     def get(self, id: UUID) -> E:
         pass
