@@ -1,8 +1,7 @@
 
 from uuid import UUID, uuid4
 
-from .account import CardAccount
-from .values import AUD
+from .values import AUD, CardNumber
 
 
 class AccountTransferService:
@@ -24,10 +23,6 @@ class AccountTransferService:
             raise ValueError("Cannot transfer an amount of None.")
 
         source_account = self.repository.get(source)
-
-        if isinstance(source_account, CardAccount):
-            raise ValueError("Cannot debit a card account.")
-
         destination_account = self.repository.get(destination)
 
         # The AccountRepository raises an exception if it does not exist.
@@ -47,10 +42,10 @@ class CardPurchaseService:
     def __init__(self, repository):
         self.repository = repository
 
-    def make_purchase(self, card_account: UUID = None,
+    def make_purchase(self, card_number: CardNumber = None,
                       merchant: UUID = None,
                       amount: AUD = None) -> None:
-        if card_account is None:
+        if card_number is None:
             raise ValueError("Cannot make a purchase on a card account of "
                              "None.")
 
@@ -60,17 +55,16 @@ class CardPurchaseService:
         if amount is None:
             raise ValueError("Cannot make a purchase of an amount of None.")
 
-        card_account = self.repository.get(card_account)
-
-        if not isinstance(card_account, CardAccount):
-            raise ValueError("Account {} is not a card account."
-                             .format(card_account))
+        account = self.repository.find_by_card_number(card_number)
 
         merchant = self.repository.get(merchant)
 
         reference = uuid4()
-        card_account.debit(amount, reference)
-        merchant.credit(amount, reference)
+        account.debit_card(card_number=card_number,
+                           amount=amount,
+                           reference=reference)
+        merchant.credit(amount=amount,
+                        reference=reference)
 
-        self.repository.update(card_account)
+        self.repository.update(account)
         self.repository.update(merchant)
