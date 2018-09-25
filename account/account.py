@@ -6,6 +6,7 @@ from typing import Iterable, List
 from uuid import UUID
 
 from .base import Entity
+from .card import Card
 from .transaction import Transaction, TransactionType
 from .values import AUD, CardNumber
 
@@ -141,7 +142,8 @@ class Account(Entity):
                 card_account = s
 
         if s is None:
-            raise ValueError('No subaccount matching card {}'.format(card))
+            raise ValueError('No subaccount matching card number {}.'
+                             .format(card_number))
 
         if not self.can_overdraw and amount > self.balance:
             raise Account.InsufficientBalance("Account may not be in arrears.")

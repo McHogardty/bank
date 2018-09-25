@@ -57,14 +57,14 @@ class CardPurchaseService:
 
         account = self.repository.find_by_card_number(card_number)
 
-        merchant = self.repository.get(merchant)
+        merchant_account = self.repository.get(merchant)
 
         reference = uuid4()
         account.debit_card(card_number=card_number,
                            amount=amount,
                            reference=reference)
-        merchant.credit(amount=amount,
-                        reference=reference)
+        merchant_account.credit(amount=amount,
+                                reference=reference)
 
         self.repository.update(account)
         self.repository.update(merchant)
