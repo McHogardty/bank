@@ -6,9 +6,72 @@ from typing import Iterable, List
 from uuid import UUID
 
 from .base import Entity
-from .card import Card
 from .transaction import Transaction, TransactionType
-from .values import AUD
+from .values import AUD, CardNumber
+
+
+class SubAccount(Entity):
+    can_overdraw = False
+
+    def __init__(self,
+                 id: UUID = None,
+                 transactions: Iterable[Transaction] = None) -> None:
+        super(SubAccount, self).__init__(id=id)
+
+        self.transactions: List[Transaction] = []
+
+        if transactions is not None:
+            self.transactions = list(transactions)
+
+    def __copy__(self) -> SubAccount:  # noqa
+        new_copy = type(self)(id=self.id)
+        new_copy.transactions = self.transactions
+
+        return new_copy
+
+    def __deepcopy__(self, memo) -> SubAccount:
+        self_id = id(self)
+        if self_id in memo:
+            return memo[self_id]
+
+        new_id = deepcopy(self.id)
+        new_account = type(self)(id=new_id)
+        new_account.transactions = deepcopy(self.transactions)
+
+        return new_account
+
+    @property
+    def balance(self):
+        if not self.transactions:
+            return AUD('0')
+
+        credits = filter(lambda t: t.type == TransactionType.CREDIT,
+                         self.transactions)
+
+        debits = filter(lambda t: t.type == TransactionType.DEBIT,
+                        self.transactions)
+
+        return AUD(sum(t.amount for t in credits) -
+                   sum(t.amount for t in debits))
+
+
+class RegularSubAccount(SubAccount):
+    pass
+
+
+class CardSubAccount(SubAccount):
+    can_overdraw = True
+
+    def __init__(self,
+                 id: UUID = None,
+                 transactions: Iterable[Transaction] = None,
+                 card: Card = None) -> None:
+        super(CardSubAccount, self).__init__(id, transactions)
+
+        if card is None:
+            raise ValueError("Cannot create a card account without a card.")
+
+        self.card = card
 
 
 class Account(Entity):
@@ -18,98 +81,121 @@ class Account(Entity):
     can_overdraw = False
 
     def __init__(self, id: UUID = None, owner: UUID = None,
-                 balance: AUD = None, parent: Account = None,
-                 transactions: Iterable[Transaction] = None) -> None:
+                 subaccounts: Iterable[SubAccount] = None) -> None:
         super(Account, self).__init__(id=id)
 
-        if owner is None:
-            raise ValueError("An account must have an owner.")
-
-        self.transactions: List[Transaction] = []
         self.owner = owner
-        self.parent = parent
 
-        if transactions is not None:
-            self.balance = AUD('0')
-            for t in transactions:
-                self._add_transaction(t)
-        else:
-            self.balance = AUD('0') if balance is None else balance
+        if subaccounts is None:
+            raise ValueError('Cannot create an account without any '
+                             'subaccounts.')
 
-    def __copy__(self) -> Account:  # noqa
-        new_copy = type(self)(id=self.id, owner=self.owner)
-        new_copy.balance = self.balance
-        new_copy.transactions = self.transactions
-        new_copy.parent = self.parent
+        self.subaccounts = list(subaccounts)
+        self.check_subaccounts()
 
-        return new_copy
+    @property
+    def balance(self):
+        return AUD(sum(s.balance for s in self.subaccounts))
 
-    def __deepcopy__(self, memo) -> Account:
-        self_id = id(self)
-        if self_id in memo:
-            return memo[self_id]
+    @property
+    def default_subaccount(self):
+        for s in self.subaccounts:
+            if isinstance(s, RegularSubAccount):
+                return s
 
-        new_id = deepcopy(self.id)
-        new_owner = deepcopy(self.owner)
-        new_account = type(self)(id=new_id, owner=new_owner)
-        new_account.balance = deepcopy(self.balance)
-        new_account.transactions = deepcopy(self.transactions)
-        new_account.parent = deepcopy(self.parent)
+    def check_subaccounts(self):
+        have_regular = False
+        for s in self.subaccounts:
+            is_regular = isinstance(s, RegularSubAccount)
 
-        return new_account
+            if have_regular and is_regular:
+                raise ValueError('Cannot have more than one regular '
+                                 'subaccount for this account.')
 
-    def _add_transaction(self, transaction: Transaction) -> None:
-        self.transactions.append(transaction)
+            have_regular = have_regular or is_regular
 
-        if transaction.type == TransactionType.CREDIT:
-            self.balance += transaction.amount
-        else:
-            self.balance -= transaction.amount
+        if not have_regular:
+            raise ValueError('Subaccounts must include a RegularSubAccount')
 
-    def debit(self, amount: AUD, reference: UUID) -> None:
+    def _add_transaction(self, subaccount, transaction):
+        subaccount.transactions.append(transaction)
+
+    def debit(self,
+              amount: AUD = None,
+              reference: UUID = None) -> None:
         if not self.can_overdraw and amount > self.balance:
             raise Account.InsufficientBalance("Account may not be in arrears.")
 
-        self._add_transaction(Transaction(amount=amount,
+        self._add_transaction(self.default_subaccount,
+                              Transaction(amount=amount,
                                           type=TransactionType.DEBIT,
                                           reference=reference))
 
-        if self.parent is not None:
-            self.parent.debit(amount, reference)
+    def debit_card(self,
+                   card_number: CardNumber = None,
+                   amount: AUD = None,
+                   reference: UUID = None) -> None:
+        card_account = None
+        for s in self.subaccounts:
+            if isinstance(s, CardSubAccount) and s.card.number == card_number:
+                card_account = s
 
-    def credit(self, amount: AUD, reference: UUID) -> None:
-        self._add_transaction(Transaction(amount=amount,
+        if s is None:
+            raise ValueError('No subaccount matching card {}'.format(card))
+
+        if not self.can_overdraw and amount > self.balance:
+            raise Account.InsufficientBalance("Account may not be in arrears.")
+
+        self._add_transaction(card_account,
+                              Transaction(amount=amount,
+                                          type=TransactionType.DEBIT,
+                                          reference=reference))
+
+    def credit(self,
+               amount: AUD = None,
+               reference: UUID = None) -> None:
+        self._add_transaction(self.default_subaccount,
+                              Transaction(amount=amount,
                                           type=TransactionType.CREDIT,
                                           reference=reference))
 
-        if self.parent is not None:
-            self.parent.credit(amount, reference)
-
 
 class RegularAccount(Account):
-    pass
-
-
-class CardAccount(Account):
-    can_overdraw = True
+    can_overdraw = False
 
     def __init__(self, id: UUID = None, owner: UUID = None,
-                 balance: AUD = None, parent: Account = None,
-                 transactions: Iterable[Transaction] = None,
-                 card: Card = None) -> None:
-        super(CardAccount, self).__init__(id, owner, balance, parent,
-                                          transactions)
+                 subaccounts: Iterable[SubAccount] = None,
+                 cards: Iterable[Card] = None) -> None:
+        if cards is not None and subaccounts is not None:
+            raise ValueError('Cannot create a regular account with both cards '
+                             'and subaccounts.')
 
-        if card is None:
-            raise ValueError("Cannot create a card account without a card.")
-        self.card = card
+        if subaccounts is None:
+            subaccounts = [RegularSubAccount()]
+
+            if cards is not None:
+                for card in cards:
+                    subaccounts.append(CardSubAccount(card=card))
+
+        super(RegularAccount, self).__init__(id=id,
+                                             owner=owner,
+                                             subaccounts=subaccounts)
 
 
 class ExternalCounterparty(Account):
     can_overdraw = True
 
     def __init__(self, id: UUID = None, owner: UUID = None,
-                 balance: AUD = None, parent: Account = None,
-                 transactions: Iterable[Transaction] = None) -> None:
-        super(ExternalCounterparty, self).__init__(id, owner, balance, parent,
-                                                   transactions)
+                 subaccounts: Iterable[SubAccount] = None) -> None:
+        if subaccounts is None:
+            subaccounts = [RegularSubAccount()]
+
+        super(ExternalCounterparty, self).__init__(id=id,
+                                                   owner=owner,
+                                                   subaccounts=subaccounts)
+
+    def check_subaccounts(self):
+        if (len(self.subaccounts) != 1 or
+                type(self.subaccounts[0]) != RegularSubAccount):
+            raise ValueError('An external counterparty must have only one '
+                             'regular account.')
