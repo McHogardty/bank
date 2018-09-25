@@ -67,4 +67,4 @@ class CardPurchaseService:
                                 reference=reference)
 
         self.repository.update(account)
-        self.repository.update(merchant)
+        self.repository.update(merchant_account)
