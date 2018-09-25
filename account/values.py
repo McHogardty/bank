@@ -18,16 +18,19 @@ class AUD(Decimal):
         return AUD(super(AUD, self).__deepcopy__(memo))
 
     def __add__(self, other: object) -> AUD:  # noqa
-        if not isinstance(other, AUD):
+        try:
+            return AUD(super(AUD, self).__add__(AUD(other)))
+        except Exception:
             return NotImplemented
 
-        return AUD(super(AUD, self).__add__(other))
+    def __radd__(self, other: object) -> AUD:  # noqa
+        return self.__add__(other)
 
     def __sub__(self, other: object) -> AUD:  # noqa
-        if not isinstance(other, AUD):
+        try:
+            return AUD(super(AUD, self).__sub__(AUD(other)))
+        except Exception:
             return NotImplemented
-
-        return AUD(super(AUD, self).__sub__(other))
 
 
 class CardNumber:
