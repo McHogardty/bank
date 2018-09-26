@@ -134,7 +134,7 @@ class Account(Entity):
 
         """
 
-        return sum(s.balance for s in self.subaccounts)
+        return sum((s.balance for s in self.subaccounts), Balance())
 
     @property
     def default_subaccount(self) -> SubAccount:
@@ -150,6 +150,11 @@ class Account(Entity):
         for s in self.subaccounts:
             if isinstance(s, RegularSubAccount):
                 return s
+
+        # Keeps the static type checker happy if the list is empty, but
+        # probably a good idea anyway.
+        raise RuntimeError('Trying to find default subaccount but none are '
+                           'present.')
 
     def check_subaccounts(self) -> None:
         """Make sure that the account has been initialised with the correct
@@ -187,6 +192,9 @@ class Account(Entity):
 
         """
 
+        if amount is None:
+            raise ValueError("Cannot debit account without an amount.")
+
         if not self.can_overdraw and amount > self.balance.available:
             raise Account.InsufficientBalance("Account may not be in arrears.")
 
@@ -216,6 +224,9 @@ class Account(Entity):
         if s is None:
             raise ValueError('No subaccount matching card number {}.'
                              .format(card_number))
+
+        if amount is None:
+            raise ValueError('Cannot debit a card without an amount.')
 
         if not self.can_overdraw and amount > self.balance.available:
             raise Account.InsufficientBalance("Account may not be in arrears.")
