@@ -11,12 +11,20 @@ from .values import AUD, Balance
 
 
 class TransactionStatus(Enum):
+    """An enum representing the status of a transaction."""
+
+    # The transfer of money has been requested but is not final.
     PENDING = auto()
+    # The transfer of money has been finalised.
     SETTLED = auto()
 
 
 class TransactionType(Enum):
+    """An enum representing the type of a transaction."""
+
+    # Money is being transferred into an account.
     CREDIT = auto()
+    # Money is being transferred out of an account.
     DEBIT = auto()
 
 
@@ -63,12 +71,19 @@ class Transaction(Entity):
         return new_transaction
 
     def adjust(self, balance) -> Balance:
-        """Adjust a balance object by the amount of this transaction."""
+        """Adjust a balance object by the amount of this transaction.
+
+        Takes one argument:
+        - The balance to be adjusted.
+
+        Returns a new balance object.
+
+        """
 
         if self.status == TransactionStatus.PENDING:
-            adjustment = Balance(available=AUD('0'), pending=self.amount)
+            adjustment = Balance(pending=self.amount)
         else:
-            adjustment = Balance(available=self.amount, pending=AUD('0'))
+            adjustment = Balance(available=self.amount)
 
         if self.type == TransactionType.DEBIT:
             adjustment = -adjustment

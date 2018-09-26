@@ -5,6 +5,8 @@ from decimal import Decimal
 
 
 class AUD(Decimal):
+    """A value object representing an amount of Australian currency."""
+
     def __repr__(self) -> str:
         return "AUD({!r})".format(super(AUD, self).__str__())
 
@@ -37,6 +39,12 @@ class AUD(Decimal):
 
 
 class Balance:
+    """A value object representing the balance of an account. It has three
+    attributes: the available balance, the pending balance, and the total
+    balance. It also defines simple arithmetic involving balances.
+
+    """
+
     def __init__(self, available: AUD = None, pending: AUD = None) -> None:
         self.available = available if available is not None else AUD('0')
         self.pending = pending if pending is not None else AUD('0')
@@ -71,6 +79,8 @@ class Balance:
 
 
 class CardNumber:
+    """A value object representing a card number."""
+
     def __init__(self, value: str) -> None:
         self.value = value
 

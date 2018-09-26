@@ -5,11 +5,22 @@ from .values import AUD, CardNumber
 
 
 class AccountTransferService:
+    """A service for transferring money between accounts."""
+
     def __init__(self, repository):
         self.repository = repository
 
     def transfer(self, source: UUID = None, destination: UUID = None,
                  amount: AUD = None) -> None:
+        """Transfer money from a source account to a destination account.
+
+        Takes the following arguments:
+        - source: The ID of the source account.
+        - destination: The ID of the destination account.
+        - amount: The amount to transfer.
+
+        """
+
         if source is None:
             raise ValueError("Cannot transfer from a source of None.")
 
@@ -42,6 +53,8 @@ class AccountTransferService:
 
 
 class CardPurchaseService:
+    """A service for facilitating purchases involving cards."""
+
     def __init__(self, repository):
         self.repository = repository
 
@@ -49,6 +62,16 @@ class CardPurchaseService:
                       merchant: UUID = None,
                       amount: AUD = None,
                       reference: UUID = None) -> None:
+        """Record a purchase for a card.
+
+        Takes the following arguments:
+        - card_number: The card number for the card.
+        - merchant: The ID of the merchant account.
+        - amount: The amount being transferred.
+        - reference: The reference for the purchase.
+
+        """
+
         if card_number is None:
             raise ValueError("Cannot make a purchase on a card account of "
                              "None.")
@@ -77,10 +100,19 @@ class CardPurchaseService:
 
 
 class TransactionSettlementService:
+    """A service for settling transactions."""
+
     def __init__(self, repository):
         self.repository = repository
 
     def settle_transaction(self, reference: UUID = None) -> None:
+        """Settle the transactions associated with a particular reference.
+
+        Takes one argument:
+        - The reference for the transactions to settle.
+
+        """
+
         if reference is None:
             raise ValueError("Cannot settle a transaction with no reference.")
 
