@@ -1,5 +1,6 @@
 
 from abc import abstractmethod
+from typing import Iterable
 from uuid import UUID
 
 from .account import Account
@@ -25,4 +26,9 @@ class AccountRepository(Repository[Account]):
 
     @abstractmethod
     def find_by_card_number(self, card_number: CardNumber) -> Account:
+        pass
+
+    @abstractmethod
+    def find_by_transaction_reference(self,
+                                      reference: UUID) -> Iterable[Account]:
         pass
