@@ -23,28 +23,35 @@ AccountCache = Dict[UUID, Account]
 
 
 class AccountType(Enum):
+    """An enum for representing the type of an account in the store."""
+
     REGULAR = auto()
     EXTERNAL_COUNTERPARTY = auto()
     CARD = auto()
 
 
 class SubAccountType(Enum):
+    """An enum for representing the type of a subaccount in the store."""
+
     REGULAR = auto()
     CARD = auto()
 
 
+# Map account types to their enum type.
 account_types: Dict[Type[Account], AccountType] = {
     ExternalCounterparty: AccountType.EXTERNAL_COUNTERPARTY,
     RegularAccount: AccountType.REGULAR,
 }
 
 
+# Map subaccount types to their enum type.
 subaccount_types: Dict[Type[SubAccount], SubAccountType] = {
     CardSubAccount: SubAccountType.CARD,
     RegularSubAccount: SubAccountType.REGULAR,
 }
 
 
+# Essentially table names for the store.
 ACCOUNT_MODEL = 'account'
 SUBACCOUNT_MODEL = 'subaccount'
 TRANSACTION_MODEL = 'transaction'
@@ -52,6 +59,14 @@ CARD_MODEL = 'card'
 
 
 class InMemoryRepository(AccountRepository):
+    """An implementation of the AccountRepository type using an in-memory
+    store.
+
+    It caches account instances during its lifespan to return references to the
+    same object.
+
+    """
+
     def __init__(self, memory_store: MemoryStore) -> None:
         self._store = memory_store
         self._cache: AccountCache = {}

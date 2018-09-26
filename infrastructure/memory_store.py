@@ -3,17 +3,25 @@ import copy
 from typing import Any, Callable, Dict, Iterator, Optional
 from uuid import UUID
 
+
+# Define some types.
 StorageRecord = Dict[str, Any]
-RecordStore = Dict[UUID, StorageRecord]
-Store = Dict[str, RecordStore]
+Table = Dict[UUID, StorageRecord]
+Store = Dict[str, Table]
 SearchPredicate = Callable[[StorageRecord], bool]
 
 
 class NotFound(Exception):
+    """Raised when no records are found."""
     pass
 
 
 class MemoryStore:
+    """A simple implementation of an in-memory store with very simple
+    transactions.
+
+    """
+
     def __init__(self):
         self._records: Store = {}
         self._changed: Optional[Store] = None
@@ -33,7 +41,7 @@ class MemoryStore:
     def find(self,
              record_type: str,
              predicate: SearchPredicate) -> Iterator[StorageRecord]:
-        changed_records: RecordStore = {}
+        changed_records: Table = {}
         if self._changed is not None:
             changed_records = self._changed.get(record_type, {})
         existing_records = self._records.get(record_type, {})
