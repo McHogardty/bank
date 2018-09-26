@@ -44,7 +44,8 @@ class CardPurchaseService:
 
     def make_purchase(self, card_number: CardNumber = None,
                       merchant: UUID = None,
-                      amount: AUD = None) -> None:
+                      amount: AUD = None,
+                      reference: UUID = None) -> None:
         if card_number is None:
             raise ValueError("Cannot make a purchase on a card account of "
                              "None.")
@@ -55,11 +56,13 @@ class CardPurchaseService:
         if amount is None:
             raise ValueError("Cannot make a purchase of an amount of None.")
 
+        if reference is None:
+            raise ValueError("Cannot make a purchase without a reference.")
+
         account = self.repository.find_by_card_number(card_number)
 
         merchant_account = self.repository.get(merchant)
 
-        reference = uuid4()
         account.debit_card(card_number=card_number,
                            amount=amount,
                            reference=reference)
