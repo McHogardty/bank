@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from functools import reduce
 from typing import Iterable, List
 from uuid import UUID
 
@@ -43,36 +44,7 @@ class SubAccount(Entity):
 
     @property
     def balance(self):
-        balance = Balance(AUD('0'), AUD('0'))
-
-        for t in self.transactions:
-            balance = t.adjust(balance)
-
-        return balance
-
-        # balance =
-        def is_pending(self, t):
-            return t.status == TransactionStatus.PENDING
-
-        def is_settled(self, t):
-            return t.status == TransactionStatus.SETTLED
-
-        available = AUD('0')
-        pending = AUD('0')
-
-        for t in self.transactions:
-            if t.status == TransactionStatus.PENDING:
-                if t.type == TransactionType.CREDIT:
-                    pending += t.amount
-                else:
-                    pending -= t.amount
-            else:
-                if t.type == TransactionType.CREDIT:
-                    available += t.amount
-                else:
-                    available -= t.amount
-
-        return Balance(available=available, pending=pending)
+        return reduce(lambda s, t: t.adjust(s), self.transactions, Balance())
 
     def settle(self,
                reference: UUID) -> None:
