@@ -74,3 +74,10 @@ class Transaction(Entity):
             adjustment = -adjustment
 
         return balance + adjustment
+
+    def settle(self) -> None:
+        if self.status != TransactionStatus.PENDING:
+            raise RuntimeError('Cannot settle a transaction which is not '
+                               'pending.')
+
+        self.status = TransactionStatus.SETTLED
