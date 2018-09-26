@@ -200,6 +200,6 @@ class ExternalCounterparty(Account):
 
     def check_subaccounts(self):
         if (len(self.subaccounts) != 1 or
-                type(self.subaccounts[0]) != RegularSubAccount):
+                not isinstance(self.subaccounts[0], RegularSubAccount)):
             raise ValueError('An external counterparty must have only one '
                              'regular account.')
