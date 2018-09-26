@@ -1,6 +1,6 @@
 
 from enum import auto, Enum
-from typing import Dict, List, Type
+from typing import Dict, List, Iterable, Type
 from uuid import UUID
 
 from account import (
@@ -223,3 +223,22 @@ class InMemoryRepository(AccountRepository):
                                                  .format(subaccount_id))
 
         return self.get(subaccount['account'])
+
+    def find_by_transaction_reference(self,
+                                      reference: UUID) -> Iterable[Account]:
+        transaction_records = list(self._store.find(
+            TRANSACTION_MODEL,
+            lambda t: t['reference'] == reference,
+        ))
+
+        if len(transaction_records) != 2:
+            raise ValueError('Did not get two transactions for a particular '
+                             'reference.')
+
+        transaction_subaccounts = [t['account'] for t in transaction_records]
+        subaccounts = self._store.find(
+            SUBACCOUNT_MODEL,
+            lambda s: s['id'] in transaction_subaccounts,
+        )
+
+        return (self.get(s['account']) for s in subaccounts)
