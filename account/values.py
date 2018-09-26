@@ -40,7 +40,7 @@ class Balance:
     def __init__(self, available: AUD = None, pending: AUD = None) -> None:
         self.available = available if available is not None else AUD('0')
         self.pending = pending if pending is not None else AUD('0')
-        self.total = available - pending
+        self.total = self.available - self.pending
 
     def __repr__(self) -> str:
         return "Balance(available={!r},pending={!r})".format(self.available,
