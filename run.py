@@ -10,6 +10,7 @@ from account import (
     CardPurchaseService,
     ExternalCounterparty,
     RegularAccount,
+    TransactionSettlementService,
 )
 from infrastructure import InMemoryRepository, MemoryStore, WorkManager
 
@@ -124,15 +125,33 @@ print()
 
 with work_manager.scope() as SCOPE:
     purchase_service = CardPurchaseService(SCOPE.get(InMemoryRepository))
+    reference = uuid.uuid4()
     purchase_service.make_purchase(card_number=first_card.number,
                                    merchant=merchant.id,
-                                   amount=amount)
+                                   amount=amount,
+                                   reference=reference)
 
 account_repository = InMemoryRepository(store)
 print("First account balance is {!s}"
       .format(account_repository.get(first_account.id).balance))
 print("Merchant balance is {!s}"
       .format(account_repository.get(merchant.id).balance))
+
+print()
+print("Settling the transaction with reference {}.".format(reference))
+print()
+
+with work_manager.scope() as SCOPE:
+    repo = SCOPE.get(InMemoryRepository)
+    settlement_service = TransactionSettlementService(repo)
+    settlement_service.settle_transaction(reference)
+
+account_repository = InMemoryRepository(store)
+print("First account balance is {!s}"
+      .format(account_repository.get(first_account.id).balance))
+print("Merchant balance is {!s}"
+      .format(account_repository.get(merchant.id).balance))
+
 
 amount = AUD('5.5')
 print()
@@ -143,9 +162,11 @@ print()
 try:
     with work_manager.scope() as SCOPE:
         purchase_service = CardPurchaseService(SCOPE.get(InMemoryRepository))
+        reference = uuid.uuid4()
         purchase_service.make_purchase(card_number=second_card.number,
                                        merchant=merchant.id,
-                                       amount=amount)
+                                       amount=amount,
+                                       reference=reference)
 except Exception as e:
     print("Got error: {}".format(e))
     print()
