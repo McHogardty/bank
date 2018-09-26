@@ -74,6 +74,12 @@ class SubAccount(Entity):
 
         return Balance(available=available, pending=pending)
 
+    def settle(self,
+               reference: UUID) -> None:
+        for t in self.transactions:
+            if t.reference == reference:
+                t.settle()
+
 
 class RegularSubAccount(SubAccount):
     pass
@@ -149,8 +155,7 @@ class Account(Entity):
         self._add_transaction(self.default_subaccount,
                               Transaction(amount=amount,
                                           type=TransactionType.DEBIT,
-                                          reference=reference,
-                                          status=TransactionStatus.SETTLED))
+                                          reference=reference))
 
     def debit_card(self,
                    card_number: CardNumber = None,
@@ -179,8 +184,11 @@ class Account(Entity):
         self._add_transaction(self.default_subaccount,
                               Transaction(amount=amount,
                                           type=TransactionType.CREDIT,
-                                          reference=reference,
-                                          status=TransactionStatus.SETTLED))
+                                          reference=reference))
+
+    def settle(self, reference: UUID) -> None:
+        for s in self.subaccounts:
+            s.settle(reference)
 
 
 class RegularAccount(Account):
