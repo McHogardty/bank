@@ -13,19 +13,23 @@ from .values import AUD, Balance, CardNumber
 
 
 class SubAccount(Entity):
-    can_overdraw = False
+    """A subaccount of an account. Contains a group of transactions and
+    potentially some additional behaviour which is provided by subclasses.
+
+    """
 
     def __init__(self,
                  id: UUID = None,
                  transactions: Iterable[Transaction] = None) -> None:
         super(SubAccount, self).__init__(id=id)
 
-        self.transactions: List[Transaction] = []
-
-        if transactions is not None:
+        self.transactions: List[Transaction]
+        if transactions is None:
+            self.transactions = []
+        else:
             self.transactions = list(transactions)
 
-    def __copy__(self) -> SubAccount:  # noqa
+    def __copy__(self) -> SubAccount:
         new_copy = type(self)(id=self.id)
         new_copy.transactions = self.transactions
 
@@ -44,22 +48,42 @@ class SubAccount(Entity):
 
     @property
     def balance(self):
+        """Calculate the balance of this subaccount. The balance is the sum of
+        the transactions.
+
+        Returns a Balance value object.
+        """
         # Balance() is the same as Balance(available=AUD(0), pending=AUD(0)).
         return reduce(lambda s, t: t.adjust(s), self.transactions, Balance())
 
     def settle(self,
                reference: UUID) -> None:
+        """Settle a transaction. Fail silently if there is no transaction with
+        the provided reference.
+
+        Takes one argument:
+        - reference: The reference of the transaction to settle.
+
+        """
+
         for t in self.transactions:
             if t.reference == reference:
                 t.settle()
 
 
 class RegularSubAccount(SubAccount):
+    """No special behaviour. Simply used to distinguish it from the
+    alternatives.
+
+    """
     pass
 
 
 class CardSubAccount(SubAccount):
-    can_overdraw = True
+    """A subaccount representing a magnetic stripe card. All of the
+    transactions involving the card are added to this subaccount.
+
+    """
 
     def __init__(self,
                  id: UUID = None,
@@ -74,9 +98,18 @@ class CardSubAccount(SubAccount):
 
 
 class Account(Entity):
+    """An Aggregate root representing multiple annotated collections of
+    transactions."""
+
     class InsufficientBalance(Exception):
+        """Used in situations where the account would otherwise be in arrears
+        if an operation were to be performed.
+
+        """
         pass
 
+    # Determines whether or not an account may be put into a negative
+    # available balance.
     can_overdraw = False
 
     def __init__(self, id: UUID = None, owner: UUID = None,
@@ -93,16 +126,38 @@ class Account(Entity):
         self.check_subaccounts()
 
     @property
-    def balance(self):
+    def balance(self) -> Balance:
+        """Calculate the balance as the sum of the balances of the
+        subaccounts.
+
+        Returns a Balance value object.
+
+        """
+
         return sum(s.balance for s in self.subaccounts)
 
     @property
-    def default_subaccount(self):
+    def default_subaccount(self) -> SubAccount:
+        """Find the default subaccount for any transactions. The usual
+        behaviour is to return the RegularSubAccount.
+
+        This property would ideally be overridden by subclasses if necessary.
+
+        Returns a SubAccount instance.
+
+        """
+
         for s in self.subaccounts:
             if isinstance(s, RegularSubAccount):
                 return s
 
-    def check_subaccounts(self):
+    def check_subaccounts(self) -> None:
+        """Make sure that the account has been initialised with the correct
+        types of subaccounts. The default behaviour is to ensure that there is
+        one (and only one) regular subaccount.
+
+        """
+
         have_regular = False
         for s in self.subaccounts:
             is_regular = isinstance(s, RegularSubAccount)
@@ -117,11 +172,21 @@ class Account(Entity):
             raise ValueError('Subaccounts must include a RegularSubAccount')
 
     def _add_transaction(self, subaccount, transaction):
+        """Add a transaction to a particular subaccount."""
+
         subaccount.transactions.append(transaction)
 
     def debit(self,
               amount: AUD = None,
               reference: UUID = None) -> None:
+        """Debit this account by a particular amount.
+
+        Takes two arguments:
+        - amount: The amount by which to debit the account.
+        - reference: The reference for the transaction.
+
+        """
+
         if not self.can_overdraw and amount > self.balance.available:
             raise Account.InsufficientBalance("Account may not be in arrears.")
 
@@ -134,6 +199,15 @@ class Account(Entity):
                    card_number: CardNumber = None,
                    amount: AUD = None,
                    reference: UUID = None) -> None:
+        """Debit a CardSubAccount by a particular amount.
+
+        Takes three arguments:
+        - card_number: The number of the card to be debited.
+        - amount: The amount by which to debit the card.
+        - reference: The reference for the transaction.
+
+        """
+
         card_account = None
         for s in self.subaccounts:
             if isinstance(s, CardSubAccount) and s.card.number == card_number:
@@ -154,17 +228,37 @@ class Account(Entity):
     def credit(self,
                amount: AUD = None,
                reference: UUID = None) -> None:
+        """Credit this account by a particular amount.
+
+        Takes two arguments:
+        - amount: The amount by which to credit the account.
+        - reference: A reference for the transaction.
+
+        """
+
         self._add_transaction(self.default_subaccount,
                               Transaction(amount=amount,
                                           type=TransactionType.CREDIT,
                                           reference=reference))
 
     def settle(self, reference: UUID) -> None:
+        """Settle a transaction associated with this account.
+
+        Takes one argument:
+        - reference: The reference for the transaction to be settled.
+
+        Failed silently if a transaction with that reference is not found.
+
+        """
+
         for s in self.subaccounts:
             s.settle(reference)
 
 
 class RegularAccount(Account):
+    """A 'typical' account. It can have one regular subaccount and one or more
+    card subaccounts."""
+
     can_overdraw = False
 
     def __init__(self, id: UUID = None, owner: UUID = None,
@@ -187,6 +281,12 @@ class RegularAccount(Account):
 
 
 class ExternalCounterparty(Account):
+    """A tool for representing a transaction involving an account which is not
+    part of our system. E.g. if a user deposits money into an account. It has
+    only a single regular subaccount, no others.
+
+    """
+
     can_overdraw = True
 
     def __init__(self, id: UUID = None, owner: UUID = None,
