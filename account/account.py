@@ -44,6 +44,7 @@ class SubAccount(Entity):
 
     @property
     def balance(self):
+        # Balance() is the same as Balance(available=AUD(0), pending=AUD(0)).
         return reduce(lambda s, t: t.adjust(s), self.transactions, Balance())
 
     def settle(self,
