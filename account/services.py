@@ -34,6 +34,9 @@ class AccountTransferService:
         source_account.debit(amount, reference)
         destination_account.credit(amount, reference)
 
+        source_account.settle(reference)
+        destination_account.settle(reference)
+
         self.repository.update(source_account)
         self.repository.update(destination_account)
 
@@ -71,3 +74,18 @@ class CardPurchaseService:
 
         self.repository.update(account)
         self.repository.update(merchant_account)
+
+
+class TransactionSettlementService:
+    def __init__(self, repository):
+        self.repository = repository
+
+    def settle_transaction(self, reference: UUID = None) -> None:
+        if reference is None:
+            raise ValueError("Cannot settle a transaction with no reference.")
+
+        accounts = self.repository.find_by_transaction_reference(reference)
+
+        for account in accounts:
+            account.settle(reference)
+            self.repository.update(account)
